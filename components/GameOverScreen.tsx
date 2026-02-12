@@ -145,7 +145,7 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ winner, onRestart, lang
             </div>
             {newScore !== undefined && (
               <div className="text-yellow-400 font-game text-xl sm:text-2xl mt-1">
-                TOTAL: {newScore}
+                {t.total}: {newScore}
               </div>
             )}
           </div>

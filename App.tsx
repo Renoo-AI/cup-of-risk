@@ -12,7 +12,7 @@ import HowToPlayScreen from './components/HowToPlayScreen';
 import LoginModal from './components/LoginModal';
 import { translations } from './translations';
 import { playSound, enableMusic, setMusicMuted, triggerHaptic } from './sounds';
-import { auth } from './firebase';
+import { auth, syncUserProfile, updateScore } from './firebase';
 import { onAuthStateChanged, User } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const INITIAL_LIVES = 2;
@@ -96,21 +96,35 @@ const App: React.FC = () => {
 
   // Sync Auth
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
+    const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
       if (user) {
-        const profile: UserProfile = {
-          uid: user.uid,
-          displayName: user.displayName || 'Warrior',
-          photoURL: user.photoURL || 'https://via.placeholder.com/150',
-          prideScore: currentUser?.prideScore || 100,
-          accountCreatedAt: currentUser?.accountCreatedAt || Date.now()
-        };
-        setCurrentUser(profile);
-        localStorage.setItem(USER_KEY, JSON.stringify(profile));
+        try {
+          const cloudData = await syncUserProfile(user, currentUser?.prideScore);
+          const profile: UserProfile = {
+            uid: user.uid,
+            displayName: cloudData.displayName || user.displayName || 'Warrior',
+            photoURL: cloudData.photoURL || user.photoURL || 'https://via.placeholder.com/150',
+            prideScore: cloudData.prideScore || 100,
+            accountCreatedAt: cloudData.createdAt?.toMillis?.() || Date.now()
+          };
+          setCurrentUser(profile);
+          localStorage.setItem(USER_KEY, JSON.stringify(profile));
+        } catch (e) {
+          console.error('Firestore sync failed', e);
+          // Fallback to local if sync fails
+          const profile: UserProfile = {
+            uid: user.uid,
+            displayName: user.displayName || 'Warrior',
+            photoURL: user.photoURL || 'https://via.placeholder.com/150',
+            prideScore: currentUser?.prideScore || 100,
+            accountCreatedAt: currentUser?.accountCreatedAt || Date.now()
+          };
+          setCurrentUser(profile);
+        }
       }
     });
     return () => unsubscribe();
-  }, [currentUser?.prideScore]);
+  }, []);
 
   useEffect(() => {
     const handleFirstClick = () => {
@@ -281,6 +295,9 @@ const App: React.FC = () => {
         const updatedUser = { ...currentUser, prideScore: newPrideScore };
         setCurrentUser(updatedUser);
         localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+
+        // Sync to cloud
+        updateScore(currentUser.uid, newPrideScore).catch(e => console.error('Failed to update cloud score', e));
       }
 
       playSound('click', settings.soundEnabled);

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Language, Difficulty, UserProfile } from '../types';
 import { translations } from '../translations';
 import { playSound, triggerHaptic } from '../sounds';
+import { getLeaderboard } from '../firebase';
 
 interface HomeScreenProps {
   onPlayLocal: () => void;
@@ -27,6 +28,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   onShowLogin 
 }) => {
   const [showAIDifficulty, setShowAIDifficulty] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const t = translations[language];
   const isRTL = language === 'ar';
 
@@ -43,6 +45,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
       handleAction(onPlayOnline);
     }
   };
+
+  useEffect(() => {
+    getLeaderboard(3).then(setLeaderboard).catch(e => console.error('Leaderboard load failed', e));
+  }, []);
 
   return (
     <div className={`flex flex-col items-center justify-center h-full w-full bg-zinc-950 animate-in fade-in duration-500 overflow-hidden relative ${isRTL ? 'rtl' : 'ltr'}`}>
@@ -127,6 +133,25 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
             </div>
           )}
         </div>
+
+        {/* Leaderboard */}
+        {!showAIDifficulty && leaderboard.length > 0 && (
+          <div className="mt-12 w-full bg-zinc-900/50 border-2 border-zinc-800 rounded-3xl p-6 animate-in fade-in slide-in-from-bottom duration-700">
+            <div className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] mb-4 text-center">{t.top_warriors}</div>
+            <div className="flex flex-col gap-3">
+              {leaderboard.map((entry, i) => (
+                <div key={entry.uid} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className={`text-xs font-game ${i === 0 ? 'text-yellow-400' : 'text-zinc-500'}`}>#{i+1}</span>
+                    <img src={entry.photoURL} alt="" className="w-6 h-6 rounded-full border border-zinc-700" />
+                    <span className="text-xs font-bold text-white uppercase tracking-wider truncate max-w-[100px]">{entry.displayName}</span>
+                  </div>
+                  <span className="text-xs font-game text-yellow-400">{entry.prideScore}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         <div className="mt-8 text-zinc-700 font-bold tracking-[0.3em] text-[10px] uppercase">
           v1.3.0 // ONLINE & PRIDE
