@@ -123,8 +123,8 @@ const App: React.FC = () => {
             displayName: cloudData.displayName || user.displayName || 'Warrior',
             photoURL: cloudData.photoURL || user.photoURL || 'https://via.placeholder.com/150',
             prideScore: cloudData.prideScore || 100,
-            country: cloudData.country,
-            title: cloudData.title,
+            country: cloudData.country || '',
+            title: cloudData.title || '',
             stats: cloudData.stats || { bombsExploded: 0, heartsFound: 0, peakPrideScore: cloudData.prideScore || 100, totalGames: 0, wins: 0 },
             accountCreatedAt: cloudData.createdAt?.toMillis?.() || Date.now()
           };
@@ -426,10 +426,7 @@ const App: React.FC = () => {
 
     if (gameMode === 'ONLINE') {
       if (roomId && myPlayerIdx !== null) {
-        const alreadyReady = roomData?.readyPlayers || [];
-        if (!alreadyReady.includes(myPlayerIdx)) {
-          updateRoom(roomId, { readyPlayers: [...alreadyReady, myPlayerIdx] });
-        }
+        updateRoom(roomId, { readyPlayers: arrayUnion(myPlayerIdx) });
       }
       return;
     }

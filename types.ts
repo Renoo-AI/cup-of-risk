@@ -35,34 +35,6 @@ export interface UserStats {
   wins: number;
 }
 
-export const COUNTRIES = [
-  { code: 'US', name: 'United States', flag: '🇺🇸' },
-  { code: 'SA', name: 'Saudi Arabia', flag: '🇸🇦' },
-  { code: 'GB', name: 'United Kingdom', flag: '🇬🇧' },
-  { code: 'AE', name: 'United Arab Emirates', flag: '🇦🇪' },
-  { code: 'KW', name: 'Kuwait', flag: '🇰🇼' },
-  { code: 'QA', name: 'Qatar', flag: '🇶🇦' },
-  { code: 'OM', name: 'Oman', flag: '🇴🇲' },
-  { code: 'BH', name: 'Bahrain', flag: '🇧🇭' },
-  { code: 'EG', name: 'Egypt', flag: '🇪🇬' },
-  { code: 'JO', name: 'Jordan', flag: '🇯🇴' },
-  { code: 'LB', name: 'Lebanon', flag: '🇱🇧' },
-  { code: 'MA', name: 'Morocco', flag: '🇲🇦' },
-  { code: 'DZ', name: 'Algeria', flag: '🇩🇿' },
-  { code: 'TN', name: 'Tunisia', flag: '🇹🇳' },
-  { code: 'FR', name: 'France', flag: '🇫🇷' },
-  { code: 'DE', name: 'Germany', flag: '🇩🇪' },
-  { code: 'ES', name: 'Spain', flag: '🇪🇸' },
-  { code: 'IT', name: 'Italy', flag: '🇮🇹' },
-  { code: 'BR', name: 'Brazil', flag: '🇧🇷' },
-  { code: 'AR', name: 'Argentina', flag: '🇦🇷' },
-  { code: 'JP', name: 'Japan', flag: '🇯🇵' },
-  { code: 'KR', name: 'South Korea', flag: '🇰🇷' },
-  { code: 'CN', name: 'China', flag: '🇨🇳' },
-  { code: 'IN', name: 'India', flag: '🇮🇳' },
-  { code: 'TR', name: 'Turkey', flag: '🇹🇷' },
-];
-
 export interface UserProfile {
   uid: string;
   displayName: string;

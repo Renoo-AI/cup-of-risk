@@ -55,7 +55,7 @@ export const updateScore = async (uid: string, newScore: number) => {
 
 export const updateUserProfile = async (uid: string, updates: any) => {
   const userRef = doc(db, "users", uid);
-  await setDoc(userRef, updates, { merge: true });
+  await setDoc(userRef, sanitize(updates), { merge: true });
 };
 
 export const forfeitAccount = async (uid: string) => {
@@ -83,7 +83,18 @@ export const getLeaderboard = async (limitCount: number = 5) => {
 
 // --- Matchmaking & Real-time Room Sync ---
 
-export const findOrCreateRoom = async (userProfile: any) => {
+const sanitize = (obj: any) => {
+  const newObj: any = {};
+  Object.keys(obj).forEach(key => {
+    if (obj[key] !== undefined) {
+      newObj[key] = obj[key];
+    }
+  });
+  return newObj;
+};
+
+export const findOrCreateRoom = async (profile: any) => {
+  const userProfile = sanitize(profile);
   const roomsRef = collection(db, "rooms");
 
   // First query for an available room
