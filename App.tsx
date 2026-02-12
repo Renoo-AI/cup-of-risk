@@ -326,7 +326,6 @@ const App: React.FC = () => {
           }
         }
       }
-    }
   }, [roomData, gameMode, isSearching, gameState, winner, currentUser, myPlayerIdx]);
 
   const cancelMatchmaking = () => {
