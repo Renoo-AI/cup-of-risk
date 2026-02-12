@@ -239,7 +239,7 @@ const App: React.FC = () => {
       return;
     }
 
-    if (gameMode === 'ONLINE' && roomData) {
+    if ((gameMode === 'ONLINE' || isSearching) && roomData) {
       // Sync State from Room
       if (roomData.status === 'playing' && isSearching) {
         setIsSearching(false);
