@@ -9,6 +9,7 @@ interface AccountSettingsProps {
   onBack: () => void;
   onUpdateProfile: (updates: Partial<UserProfile>) => Promise<void>;
   onForfeit: () => Promise<void>;
+  onSignOut: () => Promise<void>;
   soundEnabled: boolean;
 }
 
@@ -18,6 +19,7 @@ const AccountSettings: React.FC<AccountSettingsProps> = ({
   onBack,
   onUpdateProfile,
   onForfeit,
+  onSignOut,
   soundEnabled
 }) => {
   const t = translations[language];
@@ -158,6 +160,13 @@ const AccountSettings: React.FC<AccountSettingsProps> = ({
 
         {/* Actions */}
         <div className="flex flex-col gap-4 mb-20">
+          <button
+            onClick={() => { playSound('click', soundEnabled); onSignOut(); }}
+            className="w-full py-4 bg-zinc-800 text-zinc-400 font-game text-lg rounded-2xl active:bg-zinc-700 transition-all border-2 border-zinc-700 mb-4"
+          >
+            🚪 {t.sign_out}
+          </button>
+
           <button
             onClick={handleSave}
             disabled={isSaving}

@@ -14,7 +14,7 @@ import LoginModal from './components/LoginModal';
 import MatchmakingScreen from './components/MatchmakingScreen';
 import { translations } from './translations';
 import { playSound, enableMusic, setMusicMuted, triggerHaptic } from './sounds';
-import { auth, syncUserProfile, updateScore, updateUserProfile, forfeitAccount, findOrCreateRoom, updateRoom, listenToRoom, leaveRoom, arrayUnion } from './firebase';
+import { auth, syncUserProfile, updateScore, updateUserProfile, forfeitAccount, findOrCreateRoom, updateRoom, listenToRoom, leaveRoom, arrayUnion, signOutUser } from './firebase';
 import { onAuthStateChanged, User } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const INITIAL_LIVES = 2;
@@ -142,6 +142,9 @@ const App: React.FC = () => {
           };
           setCurrentUser(profile);
         }
+      } else {
+        setCurrentUser(null);
+        localStorage.removeItem(USER_KEY);
       }
     });
     return () => unsubscribe();
@@ -393,6 +396,15 @@ const App: React.FC = () => {
     }
   };
 
+  const handleSignOut = async () => {
+    try {
+      await signOutUser();
+      setGameState(GameState.HOME);
+    } catch (e) {
+      console.error('Failed to sign out', e);
+    }
+  };
+
   const placeItem = (cupId: number, type: ItemType) => {
     if (gameMode === 'ONLINE') {
       if (myPlayerIdx === null) return;
@@ -601,6 +613,7 @@ const App: React.FC = () => {
           onBack={() => setGameState(GameState.HOME)}
           onUpdateProfile={handleUpdateProfile}
           onForfeit={handleForfeit}
+          onSignOut={handleSignOut}
           soundEnabled={settings.soundEnabled}
         />
       )}

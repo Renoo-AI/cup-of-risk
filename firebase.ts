@@ -29,6 +29,8 @@ export const signInWithGoogle = async () => {
   }
 };
 
+export const signOutUser = () => auth.signOut();
+
 export const syncUserProfile = async (user: User, currentScore?: number) => {
   const userRef = doc(db, "users", user.uid);
   const snap = await getDoc(userRef);
