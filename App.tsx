@@ -11,9 +11,10 @@ import SettingsScreen from './components/SettingsScreen';
 import HowToPlayScreen from './components/HowToPlayScreen';
 import AccountSettings from './components/AccountSettings';
 import LoginModal from './components/LoginModal';
+import MatchmakingScreen from './components/MatchmakingScreen';
 import { translations } from './translations';
 import { playSound, enableMusic, setMusicMuted, triggerHaptic } from './sounds';
-import { auth, syncUserProfile, updateScore, updateUserProfile, forfeitAccount } from './firebase';
+import { auth, syncUserProfile, updateScore, updateUserProfile, forfeitAccount, findOrCreateRoom, updateRoom, listenToRoom, leaveRoom, arrayUnion } from './firebase';
 import { onAuthStateChanged, User } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const INITIAL_LIVES = 2;
@@ -50,7 +51,12 @@ const App: React.FC = () => {
   const [gameMode, setGameMode] = useState<GameMode>('LOCAL');
   const [difficulty, setDifficulty] = useState<Difficulty>('NORMAL');
   const [showLogin, setShowLogin] = useState(false);
-  
+  const [isSearching, setIsSearching] = useState(false);
+  const [roomId, setRoomId] = useState<string | null>(null);
+  const [myPlayerIdx, setMyPlayerIdx] = useState<number | null>(null);
+  const [roomData, setRoomData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
   const [cups, setCups] = useState<CupData[]>(
     Array.from({ length: 16 }, (_, i) => ({ 
       id: i, 
@@ -69,9 +75,14 @@ const App: React.FC = () => {
   const [isResolving, setIsResolving] = useState(false);
   const [winner, setWinner] = useState<Player | null>(null);
   const [scoreChange, setScoreChange] = useState<number | null>(null);
+  const hasUpdatedScore = useRef(false);
 
-  const viewerPlayerId: 1 | 2 | undefined = (gameMode === 'AI' || gameMode === 'ONLINE') ? 1 : undefined;
+  const viewerPlayerId: 1 | 2 | undefined = gameMode === 'ONLINE'
+    ? (myPlayerIdx !== null ? (myPlayerIdx + 1) as 1 | 2 : undefined)
+    : (gameMode === 'AI' ? 1 : undefined);
+
   const aiActionTimeout = useRef<number | null>(null);
+  const roomUnsubscribe = useRef<(() => void) | null>(null);
 
   // Auto-detect country via IP
   useEffect(() => {
@@ -146,7 +157,7 @@ const App: React.FC = () => {
   }, [settings.musicEnabled]);
 
   useEffect(() => {
-    if (gameState === GameState.PLAYING && (gameMode === 'AI' || gameMode === 'ONLINE') && currentPlayerIdx === 1 && !isResolving && !winner) {
+    if (gameState === GameState.PLAYING && gameMode === 'AI' && currentPlayerIdx === 1 && !isResolving && !winner) {
       aiActionTimeout.current = window.setTimeout(() => handleAITurn(), 1500);
     }
     return () => { if (aiActionTimeout.current) clearTimeout(aiActionTimeout.current); };
@@ -191,12 +202,137 @@ const App: React.FC = () => {
     setGameState(GameState.START);
   };
 
-  const handleOnlineMatch = () => {
+  const handleOnlineMatch = async () => {
     if (!currentUser) {
       setShowLogin(true);
-    } else {
-      startGame('ONLINE');
+      return;
     }
+
+    setIsSearching(true);
+    playSound('click', settings.soundEnabled);
+
+    try {
+      const { roomId, playerIdx } = await findOrCreateRoom(currentUser);
+      setRoomId(roomId);
+      setMyPlayerIdx(playerIdx);
+
+      roomUnsubscribe.current = listenToRoom(roomId, (data) => {
+        setRoomData(data);
+      });
+    } catch (e) {
+      console.error("Matchmaking failed", e);
+      setIsSearching(false);
+    }
+  };
+
+  useEffect(() => {
+    if (gameMode === 'ONLINE' && roomData === null && roomId && !isSearching) {
+      // Room was deleted or opponent left
+      setError("Opponent left the match");
+      setTimeout(() => setError(null), 3000);
+      resetGame();
+      return;
+    }
+
+    if (gameMode === 'ONLINE' && roomData) {
+      // Sync State from Room
+      if (roomData.status === 'playing' && isSearching) {
+        setIsSearching(false);
+        setGameMode('ONLINE');
+
+        const p1 = roomData.players[0];
+        const p2 = roomData.players[1];
+
+        setPlayers([
+          {
+            id: 1, name: p1.displayName, lives: INITIAL_LIVES, color: 'blue',
+            photoURL: p1.photoURL, prideScore: p1.prideScore, inventory: { ...INITIAL_INVENTORY }
+          },
+          {
+            id: 2, name: p2.displayName, lives: INITIAL_LIVES, color: 'red',
+            photoURL: p2.photoURL, prideScore: p2.prideScore, inventory: { ...INITIAL_INVENTORY }
+          },
+        ]);
+        setGameState(GameState.START);
+      }
+
+      // Sync Setup Readiness
+      if (gameState === GameState.P1_SETUP || gameState === GameState.P2_SETUP || gameState === GameState.P1_CONFIRM || gameState === GameState.P2_CONFIRM) {
+        if (roomData.readyPlayers.length === 2 && gameState !== GameState.PLAYING) {
+          setGameState(GameState.PLAYING);
+          setCurrentPlayerIdx(roomData.currentPlayerIdx);
+        }
+      }
+
+      // Sync Gameplay
+      if (gameState === GameState.PLAYING || (gameState === GameState.GAME_OVER && gameMode === 'ONLINE')) {
+        // Merge traps from both players
+        const mergedCups = cups.map(cup => {
+          const p1Items = roomData.p1Traps?.[cup.id] || [];
+          const p2Items = roomData.p2Traps?.[cup.id] || [];
+          const isOpened = roomData.openedCups?.includes(cup.id) || false;
+
+          return {
+            ...cup,
+            items: [...p1Items, ...p2Items],
+            isOpened,
+            revealStage: isOpened ? RevealStage.OPENED : cup.revealStage
+          };
+        });
+        setCups(mergedCups);
+      } else if (gameMode === 'ONLINE' && myPlayerIdx !== null) {
+        // During setup, only show local player's traps to prevent peeking
+        const localTrapsKey = `p${myPlayerIdx + 1}Traps`;
+        const myTraps = roomData[localTrapsKey] || {};
+        const mergedCups = cups.map(cup => ({
+          ...cup,
+          items: myTraps[cup.id] || [],
+          isOpened: false,
+          revealStage: RevealStage.HIDDEN
+        }));
+        setCups(mergedCups);
+      }
+
+      if (roomData.currentPlayerIdx !== undefined) setCurrentPlayerIdx(roomData.currentPlayerIdx);
+
+      // Check for winner
+        if (roomData.winner && !winner && !hasUpdatedScore.current) {
+          const gameWinner = roomData.winner;
+          setWinner(gameWinner);
+          setGameState(GameState.GAME_OVER);
+
+          if (currentUser && myPlayerIdx !== null) {
+            hasUpdatedScore.current = true;
+            const isWin = gameWinner.id === (myPlayerIdx + 1);
+            const change = isWin ? 15 : -10;
+            setScoreChange(change);
+
+            const newPrideScore = Math.max(0, (currentUser.prideScore || 100) + change);
+            const updatedStats = {
+              ...currentUser.stats!,
+              totalGames: (currentUser.stats?.totalGames || 0) + 1,
+              wins: (currentUser.stats?.wins || 0) + (isWin ? 1 : 0),
+              peakPrideScore: Math.max(currentUser.stats?.peakPrideScore || 0, newPrideScore)
+            };
+
+            const updatedUser = { ...currentUser, prideScore: newPrideScore, stats: updatedStats };
+            setCurrentUser(updatedUser);
+            localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+
+            updateUserProfile(currentUser.uid, { prideScore: newPrideScore, stats: updatedStats })
+              .catch(e => console.error('Failed to update cloud profile', e));
+          }
+        }
+      }
+    }
+  }, [roomData, gameMode, isSearching, gameState, winner, currentUser, myPlayerIdx]);
+
+  const cancelMatchmaking = () => {
+    if (roomId) leaveRoom(roomId);
+    setIsSearching(false);
+    setRoomId(null);
+    setMyPlayerIdx(null);
+    if (roomUnsubscribe.current) roomUnsubscribe.current();
   };
 
   const handleLoginSuccess = (user: any) => {
@@ -215,13 +351,21 @@ const App: React.FC = () => {
 
   const resetGame = useCallback(() => {
     playSound('click', settings.soundEnabled);
+    if (gameMode === 'ONLINE' && roomId) leaveRoom(roomId);
+    if (roomUnsubscribe.current) roomUnsubscribe.current();
+
     setCups(Array.from({ length: 16 }, (_, i) => ({ id: i, items: [], isOpened: false, revealStage: RevealStage.HIDDEN })));
     setCurrentPlayerIdx(0);
     setGameState(GameState.HOME);
+    setGameMode('LOCAL');
     setWinner(null);
     setScoreChange(null);
     setIsResolving(false);
-  }, [settings.soundEnabled]);
+    setRoomId(null);
+    setMyPlayerIdx(null);
+    setRoomData(null);
+    hasUpdatedScore.current = false;
+  }, [settings.soundEnabled, gameMode, roomId]);
 
   const handleUpdateProfile = async (updates: Partial<UserProfile>) => {
     if (!currentUser) return;
@@ -249,6 +393,26 @@ const App: React.FC = () => {
   };
 
   const placeItem = (cupId: number, type: ItemType) => {
+    if (gameMode === 'ONLINE') {
+      if (myPlayerIdx === null) return;
+      const player = players[myPlayerIdx];
+      if (player.inventory[type] <= 0) return;
+
+      playSound('click', settings.soundEnabled);
+      const newCups = cups.map((cup, idx) => idx !== cupId ? cup : { ...cup, items: [...cup.items, { type, owner: player.id as 1|2 }] });
+      const newInventory = { ...player.inventory, [type]: player.inventory[type] - 1 };
+
+      setPlayers(prev => prev.map((p, idx) => idx !== myPlayerIdx ? p : { ...p, inventory: newInventory }));
+      setCups(newCups);
+
+      if (roomId) {
+        updateRoom(roomId, {
+          [`p${myPlayerIdx + 1}Traps.${cupId}`]: arrayUnion({ type, owner: player.id })
+        });
+      }
+      return;
+    }
+
     if ((gameState === GameState.P1_SETUP && currentPlayerIdx !== 0) || (gameState === GameState.P2_SETUP && currentPlayerIdx !== 1)) return;
     const player = players[currentPlayerIdx];
     if (player.inventory[type] <= 0) return;
@@ -259,8 +423,19 @@ const App: React.FC = () => {
 
   const confirmFinishSetup = () => {
     playSound('click', settings.soundEnabled);
+
+    if (gameMode === 'ONLINE') {
+      if (roomId && myPlayerIdx !== null) {
+        const alreadyReady = roomData?.readyPlayers || [];
+        if (!alreadyReady.includes(myPlayerIdx)) {
+          updateRoom(roomId, { readyPlayers: [...alreadyReady, myPlayerIdx] });
+        }
+      }
+      return;
+    }
+
     if (gameState === GameState.P1_CONFIRM) {
-      if (gameMode === 'AI' || gameMode === 'ONLINE') {
+      if (gameMode === 'AI') {
         performAISetup();
         setGameState(GameState.PLAYING);
         setCurrentPlayerIdx(0);
@@ -285,6 +460,8 @@ const App: React.FC = () => {
 
   const openCup = async (cupId: number) => {
     if (gameState !== GameState.PLAYING || isResolving) return;
+    if (gameMode === 'ONLINE' && currentPlayerIdx !== myPlayerIdx) return;
+
     const cup = cups[cupId];
     if (cup.isOpened) return;
     setIsResolving(true);
@@ -334,38 +511,38 @@ const App: React.FC = () => {
   };
 
   const finishResolution = (cupId: number, winnerIdx: number | null) => {
-    setCups(prev => prev.map((c, idx) => idx === cupId ? { ...c, isOpened: true, revealStage: RevealStage.OPENED } : c));
+    const nextCups = cups.map((c, idx) => idx === cupId ? { ...c, isOpened: true, revealStage: RevealStage.OPENED } : c);
+    const nextPlayerIdx = (currentPlayerIdx === 0 ? 1 : 0);
+
+    if (gameMode === 'ONLINE' && roomId && myPlayerIdx === currentPlayerIdx) {
+      if (winnerIdx !== null) {
+        const gameWinner = players[winnerIdx];
+        updateRoom(roomId, {
+          openedCups: arrayUnion(cupId),
+          winner: gameWinner,
+          status: "finished"
+        });
+      } else {
+        updateRoom(roomId, {
+          openedCups: arrayUnion(cupId),
+          currentPlayerIdx: nextPlayerIdx
+        });
+      }
+    }
+
+    setCups(nextCups);
     if (winnerIdx !== null) {
       const gameWinner = players[winnerIdx];
       setWinner(gameWinner);
-
-      if (gameMode === 'ONLINE' && currentUser) {
-        const isWin = gameWinner.id === 1;
-        const change = isWin ? 15 : -10;
-        setScoreChange(change);
-
-        const newPrideScore = Math.max(0, (currentUser.prideScore || 100) + change);
-
-        const updatedStats = {
-          ...currentUser.stats!,
-          totalGames: currentUser.stats!.totalGames + 1,
-          wins: currentUser.stats!.wins + (isWin ? 1 : 0),
-          peakPrideScore: Math.max(currentUser.stats!.peakPrideScore, newPrideScore)
-        };
-
-        const updatedUser = { ...currentUser, prideScore: newPrideScore, stats: updatedStats };
-        setCurrentUser(updatedUser);
-        localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
-
-        // Sync to cloud
-        updateUserProfile(currentUser.uid, { prideScore: newPrideScore, stats: updatedStats })
-          .catch(e => console.error('Failed to update cloud profile', e));
-      }
-
       playSound('click', settings.soundEnabled);
       setGameState(GameState.GAME_OVER);
+
+      // Local score update for non-online modes
+      if (gameMode !== 'ONLINE') {
+        // No score for local/AI usually, or handle differently
+      }
     } else {
-      setCurrentPlayerIdx(prev => (prev === 0 ? 1 : 0));
+      setCurrentPlayerIdx(nextPlayerIdx);
     }
     setIsResolving(false);
   };
@@ -374,6 +551,12 @@ const App: React.FC = () => {
 
   return (
     <div className={`w-full h-[100dvh] flex flex-col items-center justify-center bg-zinc-950 text-white overflow-hidden select-none`} dir={settings.language === 'ar' ? 'rtl' : 'ltr'}>
+      {error && (
+        <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[2000] px-6 py-3 bg-red-600 text-white font-game text-sm rounded-full shadow-2xl animate-in fade-in slide-in-from-top duration-300">
+          ⚠️ {error}
+        </div>
+      )}
+
       {gameState === GameState.HOME && (
         <HomeScreen 
           onPlayLocal={() => startGame('LOCAL')} 
@@ -397,6 +580,14 @@ const App: React.FC = () => {
         />
       )}
 
+      {isSearching && (
+        <MatchmakingScreen
+          language={settings.language}
+          onCancel={cancelMatchmaking}
+          status={roomData?.status === 'playing' ? 'found' : 'searching'}
+        />
+      )}
+
       {gameState === GameState.SETTINGS && (
         <SettingsScreen settings={settings} onUpdateSettings={setSettings} onBack={() => setGameState(GameState.HOME)} />
       )}
@@ -417,16 +608,36 @@ const App: React.FC = () => {
       )}
 
       {gameState === GameState.START && <StartScreen onStart={() => setGameState(GameState.SPLASH)} language={settings.language} />}
-      {gameState === GameState.SPLASH && <GameSplashScreen onComplete={() => setGameState(GameState.P1_SETUP)} language={settings.language} />}
+      {gameState === GameState.SPLASH && <GameSplashScreen onComplete={() => {
+        if (gameMode === 'ONLINE') {
+          setGameState(myPlayerIdx === 0 ? GameState.P1_SETUP : GameState.P2_SETUP);
+        } else {
+          setGameState(GameState.P1_SETUP);
+        }
+      }} language={settings.language} />}
 
       {(gameState === GameState.P1_SETUP || gameState === GameState.P2_SETUP || gameState === GameState.P1_CONFIRM || gameState === GameState.P2_CONFIRM) && (
         <SetupScreen 
-          player={players[currentPlayerIdx]} cups={cups} onPlaceItem={placeItem} 
-          onFinishRequest={() => setGameState(currentPlayerIdx === 0 ? GameState.P1_CONFIRM : GameState.P2_CONFIRM)}
-          isConfirming={gameState === GameState.P1_CONFIRM || gameState === GameState.P2_CONFIRM}
+          player={players[gameMode === 'ONLINE' ? myPlayerIdx || 0 : currentPlayerIdx]} cups={cups} onPlaceItem={placeItem}
+          onFinishRequest={() => {
+            if (gameMode === 'ONLINE') {
+              setGameState(myPlayerIdx === 0 ? GameState.P1_CONFIRM : GameState.P2_CONFIRM);
+            } else {
+              setGameState(currentPlayerIdx === 0 ? GameState.P1_CONFIRM : GameState.P2_CONFIRM);
+            }
+          }}
+          isConfirming={gameState === GameState.P1_CONFIRM || gameState === GameState.P2_CONFIRM || (gameMode === 'ONLINE' && myPlayerIdx !== null && (roomData?.readyPlayers || []).includes(myPlayerIdx))}
           onConfirm={confirmFinishSetup}
-          onCancelConfirm={() => setGameState(currentPlayerIdx === 0 ? GameState.P1_SETUP : GameState.P2_SETUP)}
+          onCancelConfirm={() => {
+            if (gameMode === 'ONLINE') {
+              setGameState(myPlayerIdx === 0 ? GameState.P1_SETUP : GameState.P2_SETUP);
+            } else {
+              setGameState(currentPlayerIdx === 0 ? GameState.P1_SETUP : GameState.P2_SETUP);
+            }
+          }}
           language={settings.language} gameMode={gameMode} viewerPlayerId={viewerPlayerId}
+          onlineOpponentReady={gameMode === 'ONLINE' ? (roomData?.readyPlayers || []).includes(myPlayerIdx === 0 ? 1 : 0) : undefined}
+          amIReady={gameMode === 'ONLINE' ? (roomData?.readyPlayers || []).includes(myPlayerIdx) : undefined}
         />
       )}
 
@@ -434,8 +645,14 @@ const App: React.FC = () => {
         <TransitionScreen 
           message={gameState === GameState.PASS_TO_P2 ? `${t.pass_device} PLAYER 2` : `${t.pass_device} PLAYER 1`} 
           onConfirm={() => {
-            if (gameState === GameState.PASS_TO_P2) { setCurrentPlayerIdx(1); setGameState(GameState.P2_SETUP); }
-            else { setCurrentPlayerIdx(0); setGameState(GameState.PLAYING); }
+            if (gameState === GameState.PASS_TO_P2) {
+              setCurrentPlayerIdx(1);
+              setGameState(GameState.P2_SETUP);
+            }
+            else {
+              setCurrentPlayerIdx(0);
+              setGameState(GameState.PLAYING);
+            }
           }} 
           language={settings.language}
         />

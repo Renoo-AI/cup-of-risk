@@ -15,6 +15,8 @@ interface SetupScreenProps {
   language: Language;
   gameMode: GameMode;
   viewerPlayerId?: 1 | 2;
+  onlineOpponentReady?: boolean;
+  amIReady?: boolean;
 }
 
 const SetupScreen: React.FC<SetupScreenProps> = ({ 
@@ -27,7 +29,9 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
   onCancelConfirm,
   language,
   gameMode,
-  viewerPlayerId
+  viewerPlayerId,
+  onlineOpponentReady,
+  amIReady
 }) => {
   const [selectedType, setSelectedType] = useState<ItemType | null>(null);
   const [placedFeedback, setPlacedFeedback] = useState<{ id: number; type: ItemType; x: number; y: number } | null>(null);
@@ -137,23 +141,40 @@ const SetupScreen: React.FC<SetupScreenProps> = ({
       {isConfirming && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4 animate-in zoom-in duration-200 backdrop-blur-md">
           <div className="bg-zinc-900 border-4 border-yellow-400 p-6 sm:p-12 rounded-[2rem] sm:rounded-[2.5rem] shadow-[0_0_50px_rgba(251,191,36,0.3)] text-center max-w-lg w-full">
-            <h3 className="text-xl sm:text-4xl font-game text-white mb-2">{t.done_placing}</h3>
-            <p className="text-zinc-500 text-[10px] sm:text-xl mb-6 uppercase tracking-widest font-black">{t.ready_hide}</p>
-            
-            <div className="flex flex-col gap-3">
-              <button 
-                onClick={() => { triggerHaptic('heavy'); onConfirm(); }}
-                className="w-full py-4 sm:py-6 bg-yellow-400 text-black font-game text-xl sm:text-4xl rounded-xl sm:rounded-2xl active:scale-95 transition-all border-b-4 sm:border-b-8 border-yellow-600"
-              >
-                ✅ {t.done_btn}
-              </button>
-              <button 
-                onClick={() => { triggerHaptic('light'); onCancelConfirm(); }}
-                className="w-full py-3 bg-zinc-800 text-zinc-400 font-game text-base rounded-xl active:scale-95 transition-all"
-              >
-                ✏️ {t.edit_btn}
-              </button>
-            </div>
+            {amIReady && gameMode === 'ONLINE' ? (
+              <div className="flex flex-col items-center gap-6 py-8">
+                <div className="relative">
+                  <div className="w-24 h-24 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin"></div>
+                  <div className="absolute inset-0 flex items-center justify-center text-3xl">⏳</div>
+                </div>
+                <div>
+                  <h3 className="text-2xl sm:text-4xl font-game text-white mb-2">{t.waiting_opponent}</h3>
+                  <p className="text-zinc-500 text-xs sm:text-xl uppercase tracking-widest font-black">
+                    {onlineOpponentReady ? 'Opponent is ready!' : 'Preparing their traps...'}
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-xl sm:text-4xl font-game text-white mb-2">{t.done_placing}</h3>
+                <p className="text-zinc-500 text-[10px] sm:text-xl mb-6 uppercase tracking-widest font-black">{t.ready_hide}</p>
+
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={() => { triggerHaptic('heavy'); onConfirm(); }}
+                    className="w-full py-4 sm:py-6 bg-yellow-400 text-black font-game text-xl sm:text-4xl rounded-xl sm:rounded-2xl active:scale-95 transition-all border-b-4 sm:border-b-8 border-yellow-600"
+                  >
+                    ✅ {t.done_btn}
+                  </button>
+                  <button
+                    onClick={() => { triggerHaptic('light'); onCancelConfirm(); }}
+                    className="w-full py-3 bg-zinc-800 text-zinc-400 font-game text-base rounded-xl active:scale-95 transition-all"
+                  >
+                    ✏️ {t.edit_btn}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

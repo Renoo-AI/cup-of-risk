@@ -73,6 +73,10 @@ export const translations = {
     bomb_enemy: "BOMB ENEMY",
     risk_taker: "RISK TAKER",
     legend: "LEGEND",
+    searching: "SEARCHING FOR OPPONENT...",
+    opponent_found: "OPPONENT FOUND!",
+    match_ready: "MATCH IS READY",
+    waiting_opponent: "WAITING FOR OPPONENT...",
   },
   ar: {
     play_local: "لعب محلي",
@@ -148,5 +152,9 @@ export const translations = {
     bomb_enemy: "عدو القنابل",
     risk_taker: "محب المخاطرة",
     legend: "الأسطورة",
+    searching: "جاري البحث عن خصم...",
+    opponent_found: "تم العثور على خصم!",
+    match_ready: "المباراة جاهزة",
+    waiting_opponent: "بانتظار الخصم...",
   }
 };

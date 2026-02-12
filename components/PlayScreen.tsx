@@ -51,7 +51,9 @@ const PlayScreen: React.FC<PlayScreenProps> = ({
             isResolving ? 'bg-zinc-800 border-zinc-700 text-zinc-500' : 
             currentPlayerIdx === 0 ? 'bg-blue-600 border-blue-400 text-white' : 'bg-red-600 border-red-400 text-white'
           }`}>
-            {isResolving ? t.resolving : (isRTL ? `${t.player_turn} ${activePlayer.name.toUpperCase()}` : `${activePlayer.name.toUpperCase()}${t.player_turn}`)}
+            {isResolving ? t.resolving :
+             (gameMode === 'ONLINE' && viewerPlayerId !== (currentPlayerIdx + 1)) ? t.waiting_opponent :
+             (isRTL ? `${t.player_turn} ${activePlayer.name.toUpperCase()}` : `${activePlayer.name.toUpperCase()}${t.player_turn}`)}
           </div>
         </div>
 
@@ -93,7 +95,8 @@ const PlayScreen: React.FC<PlayScreenProps> = ({
 
       {/* Info Bottom */}
       <div className="text-zinc-600 font-bold text-[9px] sm:text-lg tracking-[0.2em] uppercase text-center mb-2 sm:mb-6">
-        {isResolving ? t.calculating_fate : t.tap_to_reveal}
+        {isResolving ? t.calculating_fate :
+         (gameMode === 'ONLINE' && viewerPlayerId !== (currentPlayerIdx + 1)) ? 'Wait for your turn' : t.tap_to_reveal}
       </div>
     </div>
   );
