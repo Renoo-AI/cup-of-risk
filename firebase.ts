@@ -83,17 +83,26 @@ export const getLeaderboard = async (limitCount: number = 5) => {
 
 // --- Matchmaking & Real-time Room Sync ---
 
-const sanitize = (obj: any) => {
+const sanitize = (obj: any): any => {
+  if (obj === null || typeof obj !== 'object') return obj;
+
+  // Preserve Firestore special objects (FieldValue)
+  if (obj.constructor && obj.constructor.name === 'FieldValue') return obj;
+  if (obj._methodName === 'serverTimestamp' || obj._methodName === 'arrayUnion' || obj._methodName === 'deleteField') return obj;
+
+  if (Array.isArray(obj)) return obj.map(sanitize);
+
   const newObj: any = {};
   Object.keys(obj).forEach(key => {
     if (obj[key] !== undefined) {
-      newObj[key] = obj[key];
+      newObj[key] = sanitize(obj[key]);
     }
   });
   return newObj;
 };
 
 export const findOrCreateRoom = async (profile: any) => {
+  console.log("Finding or creating room for profile:", profile);
   const userProfile = sanitize(profile);
   const roomsRef = collection(db, "rooms");
 
@@ -129,18 +138,25 @@ export const findOrCreateRoom = async (profile: any) => {
   }
 
   // If no room found or transaction failed/skipped, create a new one
-  const roomDoc = await addDoc(roomsRef, {
-    players: [userProfile],
-    status: "waiting",
-    p1Traps: {},
-    p2Traps: {},
-    openedCups: [],
-    currentPlayerIdx: 0,
-    readyPlayers: [],
-    createdAt: serverTimestamp(),
-    lastUpdate: serverTimestamp()
-  });
-  return { roomId: roomDoc.id, playerIdx: 0 };
+    console.log("Creating new room...");
+    try {
+      const roomDoc = await addDoc(roomsRef, {
+        players: [userProfile],
+        status: "waiting",
+        p1Traps: {},
+        p2Traps: {},
+        openedCups: [],
+        currentPlayerIdx: 0,
+        readyPlayers: [],
+        createdAt: serverTimestamp(),
+        lastUpdate: serverTimestamp()
+      });
+      console.log("New room created with ID:", roomDoc.id);
+      return { roomId: roomDoc.id, playerIdx: 0 };
+    } catch (e) {
+      console.error("Error creating room:", e);
+      throw e;
+    }
 };
 
 export const updateRoom = async (roomId: string, updates: any) => {

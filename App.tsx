@@ -219,8 +219,10 @@ const App: React.FC = () => {
       roomUnsubscribe.current = listenToRoom(roomId, (data) => {
         setRoomData(data);
       });
-    } catch (e) {
+    } catch (e: any) {
       console.error("Matchmaking failed", e);
+      setError(e.message || "Matchmaking failed. Please try again.");
+      setTimeout(() => setError(null), 5000);
       setIsSearching(false);
     }
   };
