@@ -32,7 +32,7 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ winner, onRestart, lang
   useEffect(() => {
     const colors = ['#fbbf24', '#3b82f6', '#ef4444', '#10b981', '#ffffff'];
     
-    const newPieces = Array.from({ length: 60 }, (_, i) => ({
+    const newPieces = Array.from({ length: 150 }, (_, i) => ({
       id: i,
       delay: Math.random() * 4000,
       color: colors[Math.floor(Math.random() * colors.length)],
@@ -115,19 +115,23 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ winner, onRestart, lang
             {t.victory}
           </div>
           
-          <div className={`w-32 h-32 sm:w-48 sm:h-48 rounded-[2rem] sm:rounded-[3rem] flex items-center justify-center text-6xl sm:text-9xl shadow-[10px_10px_0_rgba(0,0,0,1)] sm:shadow-[20px_20px_0_rgba(0,0,0,1)] border-4 sm:border-8 border-black animate-trophy ${
-            winner.id === 1 ? 'bg-blue-600' : 'bg-red-600'
-          }`}>
-            🏆
+          <div className="animate-[shake_0.5s_ease-in-out]">
+            <div className={`w-32 h-32 sm:w-48 sm:h-48 rounded-[2rem] sm:rounded-[3rem] flex items-center justify-center text-6xl sm:text-9xl shadow-[10px_10px_0_rgba(0,0,0,1)] sm:shadow-[20px_20px_0_rgba(0,0,0,1)] border-4 sm:border-8 border-black animate-trophy ${
+              winner.id === 1 ? 'bg-blue-600' : 'bg-red-600'
+            }`}>
+              🏆
+            </div>
           </div>
         </div>
 
         <h2 className="text-zinc-500 font-game text-2xl sm:text-4xl mb-2 uppercase tracking-[0.2em] sm:tracking-[0.4em]">{t.all_hail}</h2>
-        <h1 className={`text-5xl sm:text-9xl font-game mb-4 drop-shadow-[6px_6px_0_rgba(0,0,0,1)] sm:drop-shadow-[12px_12px_0_rgba(0,0,0,1)] animate-glow ${
-          winner.id === 1 ? 'text-blue-500' : 'text-red-500'
-        }`}>
-          {winner.name.toUpperCase()}
-        </h1>
+        <div className="animate-pulse">
+          <h1 className={`text-5xl sm:text-9xl font-game mb-4 drop-shadow-[6px_6px_0_rgba(0,0,0,1)] sm:drop-shadow-[12px_12px_0_rgba(0,0,0,1)] animate-glow ${
+            winner.id === 1 ? 'text-blue-500 [text-shadow:0_0_20px_rgba(59,130,246,0.8)]' : 'text-red-500 [text-shadow:0_0_20px_rgba(239,68,68,0.8)]'
+          }`}>
+            {winner.name.toUpperCase()}
+          </h1>
+        </div>
         
         <p className="text-white text-xl sm:text-3xl max-w-xs sm:max-w-lg mb-10 sm:mb-16 font-game tracking-widest opacity-80">
           {t.bluffing_legend}

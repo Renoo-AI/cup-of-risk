@@ -49,7 +49,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
       <div className="absolute inset-0 opacity-5 pointer-events-none select-none overflow-hidden">
         <div className="grid grid-cols-6 gap-20 transform -rotate-12 scale-150">
           {[...Array(30)].map((_, i) => (
-             <div key={i} className="text-9xl grayscale filter invert opacity-20">?</div>
+             <div key={i} className="text-9xl grayscale filter invert opacity-20">
+               {['?', '💣', '💔'][i % 3]}
+             </div>
           ))}
         </div>
       </div>
@@ -66,7 +68,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
       )}
 
       <div className="relative z-10 flex flex-col items-center max-w-2xl w-full px-6">
-        <div className="relative mb-8 sm:mb-16 text-center">
+        <div className="relative mb-8 sm:mb-16 text-center animate-[float_4s_ease-in-out_infinite]">
           <div className={`absolute -top-10 left-1/2 -translate-x-1/2 bg-red-600 text-white font-game text-lg sm:text-2xl px-4 py-1 border-2 border-black ${isRTL ? 'rotate-[5deg]' : 'rotate-[-5deg]'} shadow-xl z-20 whitespace-nowrap`}>
             {t.high_stakes}
           </div>
@@ -80,18 +82,20 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
             <>
               <button 
                 onClick={() => handleAction(onPlayLocal)}
-                className="group relative w-full py-5 sm:py-7 bg-white text-black font-game text-3xl sm:text-4xl border-b-[8px] border-r-[8px] border-zinc-300 active:translate-y-1 transition-all shadow-xl flex items-center justify-center gap-4"
+                className="group relative w-full py-5 sm:py-7 bg-gradient-to-br from-white to-zinc-200 text-black font-game text-3xl sm:text-4xl border-b-[8px] border-r-[8px] border-zinc-300 hover:scale-[1.02] active:scale-[0.98] active:translate-y-1 transition-all shadow-xl flex items-center justify-center gap-4 overflow-hidden"
               >
-                <i className="fa-solid fa-users text-zinc-400 group-hover:text-yellow-600"></i>
-                {t.play_local}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-[shine_1.5s_infinite]"></div>
+                <i className="fa-solid fa-users text-zinc-400 group-hover:text-yellow-600 z-10"></i>
+                <span className="z-10">{t.play_local}</span>
               </button>
 
               <button 
                 onClick={handleOnlineClick}
-                className="group relative w-full py-5 sm:py-7 bg-yellow-400 text-black font-game text-3xl sm:text-4xl border-b-[8px] border-r-[8px] border-yellow-600 active:translate-y-1 transition-all shadow-xl flex items-center justify-center gap-4"
+                className="group relative w-full py-5 sm:py-7 bg-gradient-to-br from-yellow-400 to-yellow-600 text-black font-game text-3xl sm:text-4xl border-b-[8px] border-r-[8px] border-yellow-700 hover:scale-[1.02] active:scale-[0.98] active:translate-y-1 transition-all shadow-2xl flex items-center justify-center gap-4 overflow-hidden"
               >
-                <i className="fa-solid fa-earth-americas"></i>
-                {t.online}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent -translate-x-full group-hover:animate-[shine_1.5s_infinite]"></div>
+                <i className="fa-solid fa-earth-americas z-10"></i>
+                <span className="z-10">{t.online}</span>
               </button>
 
               <button 
@@ -128,8 +132,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
           )}
         </div>
 
-        <div className="mt-8 text-zinc-700 font-bold tracking-[0.3em] text-[10px] uppercase">
-          v1.3.0 // ONLINE & PRIDE
+        <div className="mt-12 glass-effect px-4 py-1.5 rounded-full text-zinc-500 font-bold tracking-[0.2em] text-[9px] uppercase border border-white/5 shadow-inner">
+          v1.3.1 // ENHANCED EXPERIENCE
         </div>
       </div>
     </div>
