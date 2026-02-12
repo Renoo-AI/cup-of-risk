@@ -61,6 +61,7 @@ const App: React.FC = () => {
   const [currentPlayerIdx, setCurrentPlayerIdx] = useState(0);
   const [isResolving, setIsResolving] = useState(false);
   const [winner, setWinner] = useState<Player | null>(null);
+  const [scoreChange, setScoreChange] = useState<number | null>(null);
 
   const viewerPlayerId: 1 | 2 | undefined = (gameMode === 'AI' || gameMode === 'ONLINE') ? 1 : undefined;
   const aiActionTimeout = useRef<number | null>(null);
@@ -121,7 +122,7 @@ const App: React.FC = () => {
   }, [settings.musicEnabled]);
 
   useEffect(() => {
-    if (gameState === GameState.PLAYING && gameMode === 'AI' && currentPlayerIdx === 1 && !isResolving && !winner) {
+    if (gameState === GameState.PLAYING && (gameMode === 'AI' || gameMode === 'ONLINE') && currentPlayerIdx === 1 && !isResolving && !winner) {
       aiActionTimeout.current = window.setTimeout(() => handleAITurn(), 1500);
     }
     return () => { if (aiActionTimeout.current) clearTimeout(aiActionTimeout.current); };
@@ -194,6 +195,7 @@ const App: React.FC = () => {
     setCurrentPlayerIdx(0);
     setGameState(GameState.HOME);
     setWinner(null);
+    setScoreChange(null);
     setIsResolving(false);
   }, [settings.soundEnabled]);
 
@@ -210,7 +212,7 @@ const App: React.FC = () => {
     playSound('click', settings.soundEnabled);
     if (gameState === GameState.P1_CONFIRM) {
       if (gameMode === 'AI' || gameMode === 'ONLINE') {
-        if (gameMode === 'AI') performAISetup();
+        performAISetup();
         setGameState(GameState.PLAYING);
         setCurrentPlayerIdx(0);
       } else {
@@ -267,7 +269,20 @@ const App: React.FC = () => {
   const finishResolution = (cupId: number, winnerIdx: number | null) => {
     setCups(prev => prev.map((c, idx) => idx === cupId ? { ...c, isOpened: true, revealStage: RevealStage.OPENED } : c));
     if (winnerIdx !== null) {
-      setWinner(players[winnerIdx]);
+      const gameWinner = players[winnerIdx];
+      setWinner(gameWinner);
+
+      if (gameMode === 'ONLINE' && currentUser) {
+        const isWin = gameWinner.id === 1;
+        const change = isWin ? 15 : -10;
+        setScoreChange(change);
+
+        const newPrideScore = Math.max(0, (currentUser.prideScore || 100) + change);
+        const updatedUser = { ...currentUser, prideScore: newPrideScore };
+        setCurrentUser(updatedUser);
+        localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+      }
+
       playSound('click', settings.soundEnabled);
       setGameState(GameState.GAME_OVER);
     } else {
@@ -340,7 +355,13 @@ const App: React.FC = () => {
       )}
 
       {gameState === GameState.GAME_OVER && winner && (
-        <GameOverScreen winner={winner} onRestart={resetGame} language={settings.language} />
+        <GameOverScreen
+          winner={winner}
+          onRestart={resetGame}
+          language={settings.language}
+          scoreChange={scoreChange}
+          newScore={currentUser?.prideScore}
+        />
       )}
     </div>
   );
