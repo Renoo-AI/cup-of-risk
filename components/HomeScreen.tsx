@@ -15,6 +15,7 @@ interface HomeScreenProps {
   user: UserProfile | null;
   onShowLogin: () => void;
   onAccountSettings?: () => void;
+  isAuthLoading?: boolean;
 }
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ 
@@ -27,7 +28,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   soundEnabled, 
   user,
   onShowLogin,
-  onAccountSettings
+  onAccountSettings,
+  isAuthLoading = false
 }) => {
   const [showAIDifficulty, setShowAIDifficulty] = useState(false);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
@@ -99,9 +101,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
 
               <button 
                 onClick={handleOnlineClick}
-                className="group relative w-full py-5 sm:py-7 bg-yellow-400 text-black font-game text-3xl sm:text-4xl border-b-[8px] border-r-[8px] border-yellow-600 active:translate-y-1 transition-all shadow-xl flex items-center justify-center gap-4"
+                disabled={isAuthLoading}
+                className={`group relative w-full py-5 sm:py-7 bg-yellow-400 text-black font-game text-3xl sm:text-4xl border-b-[8px] border-r-[8px] border-yellow-600 active:translate-y-1 transition-all shadow-xl flex items-center justify-center gap-4 ${isAuthLoading ? 'opacity-50 cursor-wait' : ''}`}
               >
-                <i className="fa-solid fa-earth-americas"></i>
+                {isAuthLoading ? (
+                  <i className="fa-solid fa-spinner animate-spin"></i>
+                ) : (
+                  <i className="fa-solid fa-earth-americas"></i>
+                )}
                 {t.online}
               </button>
 

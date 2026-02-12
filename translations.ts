@@ -78,6 +78,7 @@ export const translations = {
     opponent_found: "OPPONENT FOUND!",
     match_ready: "MATCH IS READY",
     waiting_opponent: "WAITING FOR OPPONENT...",
+    wait_turn: "WAIT FOR YOUR TURN",
   },
   ar: {
     play_local: "لعب محلي",
@@ -158,5 +159,6 @@ export const translations = {
     opponent_found: "تم العثور على خصم!",
     match_ready: "المباراة جاهزة",
     waiting_opponent: "بانتظار الخصم...",
+    wait_turn: "انتظر دورك",
   }
 };

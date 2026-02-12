@@ -96,7 +96,7 @@ const PlayScreen: React.FC<PlayScreenProps> = ({
       {/* Info Bottom */}
       <div className="text-zinc-600 font-bold text-[9px] sm:text-lg tracking-[0.2em] uppercase text-center mb-2 sm:mb-6">
         {isResolving ? t.calculating_fate :
-         (gameMode === 'ONLINE' && viewerPlayerId !== (currentPlayerIdx + 1)) ? 'Wait for your turn' : t.tap_to_reveal}
+         (gameMode === 'ONLINE' && viewerPlayerId !== (currentPlayerIdx + 1)) ? t.wait_turn : t.tap_to_reveal}
       </div>
     </div>
   );

@@ -56,6 +56,7 @@ const App: React.FC = () => {
   const [myPlayerIdx, setMyPlayerIdx] = useState<number | null>(null);
   const [roomData, setRoomData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
 
   const [cups, setCups] = useState<CupData[]>(
     Array.from({ length: 16 }, (_, i) => ({ 
@@ -115,6 +116,7 @@ const App: React.FC = () => {
   // Sync Auth
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user: User | null) => {
+      setIsAuthLoading(false);
       if (user) {
         try {
           const cloudData = await syncUserProfile(user, currentUser?.prideScore);
@@ -211,6 +213,12 @@ const App: React.FC = () => {
       return;
     }
 
+    if (!auth.currentUser) {
+      setError("Waiting for authentication...");
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
     setIsSearching(true);
     playSound('click', settings.soundEnabled);
 
@@ -241,24 +249,30 @@ const App: React.FC = () => {
 
     if ((gameMode === 'ONLINE' || isSearching) && roomData) {
       // Sync State from Room
-      if (roomData.status === 'playing' && isSearching) {
+      if (roomData.status === 'playing' && isSearching && roomData.players?.length === 2) {
         setIsSearching(false);
         setGameMode('ONLINE');
 
-        const p1 = roomData.players[0];
-        const p2 = roomData.players[1];
+        try {
+          const p1 = roomData.players[0];
+          const p2 = roomData.players[1];
 
-        setPlayers([
-          {
-            id: 1, name: p1.displayName, lives: INITIAL_LIVES, color: 'blue',
-            photoURL: p1.photoURL, prideScore: p1.prideScore, inventory: { ...INITIAL_INVENTORY }
-          },
-          {
-            id: 2, name: p2.displayName, lives: INITIAL_LIVES, color: 'red',
-            photoURL: p2.photoURL, prideScore: p2.prideScore, inventory: { ...INITIAL_INVENTORY }
-          },
-        ]);
-        setGameState(GameState.START);
+          setPlayers([
+            {
+              id: 1, name: p1.displayName || 'Player 1', lives: INITIAL_LIVES, color: 'blue',
+              photoURL: p1.photoURL, prideScore: p1.prideScore, inventory: { ...INITIAL_INVENTORY }
+            },
+            {
+              id: 2, name: p2.displayName || 'Player 2', lives: INITIAL_LIVES, color: 'red',
+              photoURL: p2.photoURL, prideScore: p2.prideScore, inventory: { ...INITIAL_INVENTORY }
+            },
+          ]);
+          setGameState(GameState.START);
+        } catch (err) {
+          console.error("Error setting online players", err);
+          setError("Failed to sync players");
+          resetGame();
+        }
       }
 
       // Sync Setup Readiness
@@ -572,6 +586,7 @@ const App: React.FC = () => {
           onPlayLocal={() => startGame('LOCAL')} 
           onPlayAI={(diff) => startGame('AI', diff)}
           onPlayOnline={handleOnlineMatch}
+          isAuthLoading={isAuthLoading}
           onSettings={() => setGameState(GameState.SETTINGS)}
           onHowToPlay={() => setGameState(GameState.HOW_TO_PLAY)}
           language={settings.language}

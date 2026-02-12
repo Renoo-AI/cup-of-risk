@@ -88,16 +88,19 @@ export const getLeaderboard = async (limitCount: number = 5) => {
 const sanitize = (obj: any): any => {
   if (obj === null || typeof obj !== 'object') return obj;
 
-  // Preserve Firestore special objects (FieldValue)
-  if (obj.constructor && obj.constructor.name === 'FieldValue') return obj;
-  if (obj._methodName === 'serverTimestamp' || obj._methodName === 'arrayUnion' || obj._methodName === 'deleteField') return obj;
+  // Firestore special objects (FieldValue, Timestamp, etc)
+  if ('_methodName' in obj || (typeof obj.toMillis === 'function')) return obj;
 
   if (Array.isArray(obj)) return obj.map(sanitize);
 
+  // Only sanitize plain objects
+  if (obj.constructor !== Object) return obj;
+
   const newObj: any = {};
   Object.keys(obj).forEach(key => {
-    if (obj[key] !== undefined) {
-      newObj[key] = sanitize(obj[key]);
+    const val = obj[key];
+    if (val !== undefined) {
+      newObj[key] = sanitize(val);
     }
   });
   return newObj;
@@ -163,10 +166,10 @@ export const findOrCreateRoom = async (profile: any) => {
 
 export const updateRoom = async (roomId: string, updates: any) => {
   const roomRef = doc(db, "rooms", roomId);
-  await updateDoc(roomRef, {
+  await updateDoc(roomRef, sanitize({
     ...updates,
     lastUpdate: serverTimestamp()
-  });
+  }));
 };
 
 export const listenToRoom = (roomId: string, callback: (data: any) => void) => {

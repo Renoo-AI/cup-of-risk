@@ -34,7 +34,7 @@ const MatchmakingScreen: React.FC<MatchmakingScreenProps> = ({ language, onCance
         </h2>
 
         <p className="text-zinc-500 font-bold uppercase tracking-[0.3em] text-xs mb-12">
-          {status === 'searching' ? 'WAITING IN THE ARENA' : t.match_ready}
+          {status === 'searching' ? t.waiting_opponent : t.match_ready}
         </p>
 
         {status === 'searching' && (
