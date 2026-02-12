@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Cup of Risk</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Bangers&family=Inter:wght@400;700&family=Cairo:wght@600;700;800&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --dvh: 100dvh;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #09090b;
+        font-family: 'Inter', sans-serif;
+        overflow: hidden;
+        height: var(--dvh);
+        width: 100vw;
+        position: fixed;
+      }
+      .font-game {
+        font-family: 'Luckiest Guy', cursive, 'Cairo', sans-serif;
+      }
+      .font-header {
+        font-family: 'Bangers', cursive, 'Cairo', sans-serif;
+      }
+
+      [dir="rtl"], [dir="rtl"] body, [dir="rtl"] .font-game, [dir="rtl"] .font-header {
+        font-family: 'Cairo', sans-serif;
+      }
+
+      /* Tactile Mobile Effects */
+      .tap-highlight-none {
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      /* Holographic X-Ray Effects */
+      @keyframes xray-scanner {
+        0% { top: -10%; }
+        50% { top: 100%; }
+        100% { top: -10%; }
+      }
+
+      @keyframes energy-flicker {
+        0%, 100% { opacity: 0.3; }
+        50% { opacity: 0.5; }
+      }
+
+      .hologram-container {
+        overflow: hidden;
+        position: relative;
+      }
+
+      .hologram-scanline {
+        position: absolute;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(to right, transparent, #60a5fa, transparent);
+        box-shadow: 0 0 10px #60a5fa;
+        animation: xray-scanner 3s infinite linear;
+        z-index: 5;
+      }
+
+      .energy-field {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.2), transparent);
+        animation: energy-flicker 2s infinite ease-in-out;
+      }
+
+      /* Enhanced Cup Shadows */
+      .cup-shadow-tactile {
+        box-shadow: 
+          inset -10px -10px 20px rgba(0,0,0,0.3),
+          inset 5px 5px 15px rgba(255,255,255,0.2),
+          0 10px 20px rgba(0,0,0,0.5);
+      }
+
+      .xray-glow {
+        box-shadow: 0 0 15px rgba(59, 130, 246, 0.4), inset 0 0 10px rgba(59, 130, 246, 0.2);
+      }
+
+      /* Floating Animation for placement */
+      @keyframes item-float-up {
+        0% { transform: translateY(0) scale(1); opacity: 1; }
+        100% { transform: translateY(-50px) scale(1.5); opacity: 0; }
+      }
+      .animate-float-up {
+        animation: item-float-up 0.6s ease-out forwards;
+      }
+
+      .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+      .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+      .custom-scrollbar::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 10px; }
+    </style>
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@^19.2.4",
+        "react/": "https://esm.sh/react@^19.2.4/",
+        "react-dom": "https://esm.sh/react-dom@^19.2.4",
+        "react-dom/": "https://esm.sh/react-dom@^19.2.4/"
+      }
+    }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <iframe
+      id="bg-music"
+      src="https://www.youtube.com/embed/4NdzrsaIQ9s?autoplay=1&loop=1&playlist=4NdzrsaIQ9s&controls=0&mute=1"
+      style="position: fixed; width: 1px; height: 1px; opacity: 0; pointer-events: none; left: -9999px; top: -9999px;"
+      frameborder="0"
+      allow="autoplay"
+    ></iframe>
+    <script type="module" src="./index.tsx"></script>
+  </body>
+</html>
