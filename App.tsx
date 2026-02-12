@@ -9,10 +9,11 @@ import GameSplashScreen from './components/GameSplashScreen';
 import HomeScreen from './components/HomeScreen';
 import SettingsScreen from './components/SettingsScreen';
 import HowToPlayScreen from './components/HowToPlayScreen';
+import AccountSettings from './components/AccountSettings';
 import LoginModal from './components/LoginModal';
 import { translations } from './translations';
 import { playSound, enableMusic, setMusicMuted, triggerHaptic } from './sounds';
-import { auth, syncUserProfile, updateScore } from './firebase';
+import { auth, syncUserProfile, updateScore, updateUserProfile, forfeitAccount } from './firebase';
 import { onAuthStateChanged, User } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
 const INITIAL_LIVES = 2;
@@ -36,7 +37,13 @@ const App: React.FC = () => {
 
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
     const saved = localStorage.getItem(USER_KEY);
-    return saved ? JSON.parse(saved) : null;
+    if (!saved) return null;
+    const parsed = JSON.parse(saved);
+    // Initialize stats if missing
+    if (!parsed.stats) {
+      parsed.stats = { bombsExploded: 0, heartsFound: 0, peakPrideScore: parsed.prideScore, totalGames: 0, wins: 0 };
+    }
+    return parsed;
   });
 
   const [gameState, setGameState] = useState<GameState>(GameState.HOME);
@@ -105,6 +112,9 @@ const App: React.FC = () => {
             displayName: cloudData.displayName || user.displayName || 'Warrior',
             photoURL: cloudData.photoURL || user.photoURL || 'https://via.placeholder.com/150',
             prideScore: cloudData.prideScore || 100,
+            country: cloudData.country,
+            title: cloudData.title,
+            stats: cloudData.stats || { bombsExploded: 0, heartsFound: 0, peakPrideScore: cloudData.prideScore || 100, totalGames: 0, wins: 0 },
             accountCreatedAt: cloudData.createdAt?.toMillis?.() || Date.now()
           };
           setCurrentUser(profile);
@@ -213,6 +223,31 @@ const App: React.FC = () => {
     setIsResolving(false);
   }, [settings.soundEnabled]);
 
+  const handleUpdateProfile = async (updates: Partial<UserProfile>) => {
+    if (!currentUser) return;
+    try {
+      await updateUserProfile(currentUser.uid, updates);
+      const updated = { ...currentUser, ...updates };
+      setCurrentUser(updated);
+      localStorage.setItem(USER_KEY, JSON.stringify(updated));
+    } catch (e) {
+      console.error('Failed to update profile', e);
+    }
+  };
+
+  const handleForfeit = async () => {
+    if (!currentUser) return;
+    try {
+      await forfeitAccount(currentUser.uid);
+      const updated = { ...currentUser, prideScore: 0, title: '', country: '' };
+      setCurrentUser(updated);
+      localStorage.setItem(USER_KEY, JSON.stringify(updated));
+      setGameState(GameState.HOME);
+    } catch (e) {
+      console.error('Failed to forfeit', e);
+    }
+  };
+
   const placeItem = (cupId: number, type: ItemType) => {
     if ((gameState === GameState.P1_SETUP && currentPlayerIdx !== 0) || (gameState === GameState.P2_SETUP && currentPlayerIdx !== 1)) return;
     const player = players[currentPlayerIdx];
@@ -259,7 +294,17 @@ const App: React.FC = () => {
     setCups(prev => prev.map((c, idx) => idx === cupId ? { ...c, revealStage: RevealStage.HEARTS } : c));
     await new Promise(r => setTimeout(r, 1000));
     if (res.diedToHearts) playSound('heart_die', settings.soundEnabled);
-    else if (res.hearts > 0) playSound('heart_survive', settings.soundEnabled);
+    else if (res.hearts > 0) {
+      playSound('heart_survive', settings.soundEnabled);
+      if (gameMode === 'ONLINE' && currentUser && currentPlayerIdx === 0) {
+        handleUpdateProfile({
+          stats: {
+            ...currentUser.stats!,
+            heartsFound: currentUser.stats!.heartsFound + res.hearts
+          }
+        });
+      }
+    }
     setPlayers(prev => {
       const newPlayers = [...prev];
       newPlayers[currentPlayerIdx] = { ...newPlayers[currentPlayerIdx], lives: res.livesAfterHearts };
@@ -270,6 +315,14 @@ const App: React.FC = () => {
       setCups(prev => prev.map((c, idx) => idx === cupId ? { ...c, revealStage: RevealStage.BOMBS } : c));
       await new Promise(r => setTimeout(r, 1000));
       playSound('bomb', settings.soundEnabled);
+      if (gameMode === 'ONLINE' && currentUser && currentPlayerIdx === 0) {
+        handleUpdateProfile({
+          stats: {
+            ...currentUser.stats!,
+            bombsExploded: currentUser.stats!.bombsExploded + res.bombs
+          }
+        });
+      }
       setPlayers(prev => {
         const newPlayers = [...prev];
         newPlayers[currentPlayerIdx] = { ...newPlayers[currentPlayerIdx], lives: res.finalLives };
@@ -292,12 +345,21 @@ const App: React.FC = () => {
         setScoreChange(change);
 
         const newPrideScore = Math.max(0, (currentUser.prideScore || 100) + change);
-        const updatedUser = { ...currentUser, prideScore: newPrideScore };
+
+        const updatedStats = {
+          ...currentUser.stats!,
+          totalGames: currentUser.stats!.totalGames + 1,
+          wins: currentUser.stats!.wins + (isWin ? 1 : 0),
+          peakPrideScore: Math.max(currentUser.stats!.peakPrideScore, newPrideScore)
+        };
+
+        const updatedUser = { ...currentUser, prideScore: newPrideScore, stats: updatedStats };
         setCurrentUser(updatedUser);
         localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
 
         // Sync to cloud
-        updateScore(currentUser.uid, newPrideScore).catch(e => console.error('Failed to update cloud score', e));
+        updateUserProfile(currentUser.uid, { prideScore: newPrideScore, stats: updatedStats })
+          .catch(e => console.error('Failed to update cloud profile', e));
       }
 
       playSound('click', settings.soundEnabled);
@@ -323,6 +385,7 @@ const App: React.FC = () => {
           soundEnabled={settings.soundEnabled}
           user={currentUser}
           onShowLogin={() => setShowLogin(true)}
+          onAccountSettings={() => setGameState(GameState.ACCOUNT_SETTINGS)}
         />
       )}
 
@@ -340,6 +403,17 @@ const App: React.FC = () => {
 
       {gameState === GameState.HOW_TO_PLAY && (
         <HowToPlayScreen language={settings.language} onBack={() => setGameState(GameState.HOME)} />
+      )}
+
+      {gameState === GameState.ACCOUNT_SETTINGS && currentUser && (
+        <AccountSettings
+          user={currentUser}
+          language={settings.language}
+          onBack={() => setGameState(GameState.HOME)}
+          onUpdateProfile={handleUpdateProfile}
+          onForfeit={handleForfeit}
+          soundEnabled={settings.soundEnabled}
+        />
       )}
 
       {gameState === GameState.START && <StartScreen onStart={() => setGameState(GameState.SPLASH)} language={settings.language} />}

@@ -51,6 +51,16 @@ export const updateScore = async (uid: string, newScore: number) => {
   await setDoc(userRef, { prideScore: newScore }, { merge: true });
 };
 
+export const updateUserProfile = async (uid: string, updates: any) => {
+  const userRef = doc(db, "users", uid);
+  await setDoc(userRef, updates, { merge: true });
+};
+
+export const forfeitAccount = async (uid: string) => {
+  const userRef = doc(db, "users", uid);
+  await setDoc(userRef, { prideScore: 0, title: '', country: '' }, { merge: true });
+};
+
 export const getLeaderboard = async (limitCount: number = 5) => {
   const usersRef = collection(db, "users");
   const q = query(usersRef, orderBy("prideScore", "desc"), limit(limitCount));

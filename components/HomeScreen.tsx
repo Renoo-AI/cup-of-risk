@@ -14,6 +14,7 @@ interface HomeScreenProps {
   soundEnabled: boolean;
   user: UserProfile | null;
   onShowLogin: () => void;
+  onAccountSettings?: () => void;
 }
 
 const HomeScreen: React.FC<HomeScreenProps> = ({ 
@@ -25,7 +26,8 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
   language, 
   soundEnabled, 
   user,
-  onShowLogin 
+  onShowLogin,
+  onAccountSettings
 }) => {
   const [showAIDifficulty, setShowAIDifficulty] = useState(false);
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
@@ -62,11 +64,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({
 
       {/* User Mini Profile */}
       {user && (
-        <div className="absolute top-6 left-6 flex items-center gap-3 animate-in slide-in-from-left duration-500">
-          <img src={user.photoURL} alt={user.displayName} className="w-10 h-10 rounded-full border-2 border-yellow-400 shadow-lg" />
+        <div
+          onClick={() => onAccountSettings?.()}
+          className="absolute top-6 left-6 flex items-center gap-3 animate-in slide-in-from-left duration-500 cursor-pointer group active:scale-95 transition-all z-50"
+        >
+          <img src={user.photoURL} alt={user.displayName} className="w-10 h-10 rounded-full border-2 border-yellow-400 shadow-lg group-hover:border-white transition-colors" />
           <div className="flex flex-col">
-            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{t.pride_score}</span>
-            <span className="font-game text-yellow-400 leading-none">{user.prideScore}</span>
+            <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest group-hover:text-yellow-400 transition-colors">{t.pride_score}</span>
+            <span className="font-game text-yellow-400 leading-none group-hover:text-white transition-colors">{user.prideScore}</span>
           </div>
         </div>
       )}
