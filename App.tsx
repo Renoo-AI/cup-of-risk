@@ -286,7 +286,7 @@ const App: React.FC = () => {
       // Sync Gameplay
       if (gameState === GameState.PLAYING || (gameState === GameState.GAME_OVER && gameMode === 'ONLINE')) {
         // Merge traps from both players
-        const mergedCups = cups.map(cup => {
+        setCups(prevCups => prevCups.map(cup => {
           const p1Items = roomData.p1Traps?.[cup.id] || [];
           const p2Items = roomData.p2Traps?.[cup.id] || [];
           const isOpened = roomData.openedCups?.includes(cup.id) || false;
@@ -297,19 +297,17 @@ const App: React.FC = () => {
             isOpened,
             revealStage: isOpened ? RevealStage.OPENED : cup.revealStage
           };
-        });
-        setCups(mergedCups);
+        }));
       } else if (gameMode === 'ONLINE' && myPlayerIdx !== null) {
         // During setup, only show local player's traps to prevent peeking
         const localTrapsKey = `p${myPlayerIdx + 1}Traps`;
         const myTraps = roomData[localTrapsKey] || {};
-        const mergedCups = cups.map(cup => ({
+        setCups(prevCups => prevCups.map(cup => ({
           ...cup,
           items: myTraps[cup.id] || [],
           isOpened: false,
           revealStage: RevealStage.HIDDEN
-        }));
-        setCups(mergedCups);
+        })));
       }
 
       if (roomData.currentPlayerIdx !== undefined) setCurrentPlayerIdx(roomData.currentPlayerIdx);
@@ -535,7 +533,7 @@ const App: React.FC = () => {
   };
 
   const finishResolution = (cupId: number, winnerIdx: number | null) => {
-    const nextCups = cups.map((c, idx) => idx === cupId ? { ...c, isOpened: true, revealStage: RevealStage.OPENED } : c);
+    setCups(prev => prev.map((c, idx) => idx === cupId ? { ...c, isOpened: true, revealStage: RevealStage.OPENED } : c));
     const nextPlayerIdx = (currentPlayerIdx === 0 ? 1 : 0);
 
     if (gameMode === 'ONLINE' && roomId && myPlayerIdx === currentPlayerIdx) {
@@ -554,7 +552,6 @@ const App: React.FC = () => {
       }
     }
 
-    setCups(nextCups);
     if (winnerIdx !== null) {
       const gameWinner = players[winnerIdx];
       setWinner(gameWinner);
