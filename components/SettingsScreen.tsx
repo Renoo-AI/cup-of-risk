@@ -23,6 +23,7 @@ const SettingsScreen: React.FC<SettingsScreenProps> = ({ settings, onUpdateSetti
   const setLanguage = (lang: Language) => handleToggle({ ...settings, language: lang });
   const setCountry = (code: string) => {
     triggerHaptic('light');
+    // BROOO IT AUTOMATICALLY CHANGES LANGUAGE NOW!
     const autoLang = getLanguageByCountry(code);
     handleToggle({ ...settings, country: code, language: autoLang });
   };

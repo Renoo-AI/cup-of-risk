@@ -99,6 +99,7 @@ export const calculateResolution = (items: GameItem[], currentLives: number): Re
 };
 
 export const COUNTRIES = [
+  // Arab World (Language: ar)
   { code: 'SA', name: 'Saudi Arabia', flag: '🇸🇦', lang: 'ar' },
   { code: 'EG', name: 'Egypt', flag: '🇪🇬', lang: 'ar' },
   { code: 'AE', name: 'UAE', flag: '🇦🇪', lang: 'ar' },
@@ -114,6 +115,11 @@ export const COUNTRIES = [
   { code: 'PS', name: 'Palestine', flag: '🇵🇸', lang: 'ar' },
   { code: 'TN', name: 'Tunisia', flag: '🇹🇳', lang: 'ar' },
   { code: 'YE', name: 'Yemen', flag: '🇾🇪', lang: 'ar' },
+  { code: 'BH', name: 'Bahrain', flag: '🇧🇭', lang: 'ar' },
+  { code: 'SD', name: 'Sudan', flag: '🇸🇩', lang: 'ar' },
+  { code: 'SY', name: 'Syria', flag: '🇸🇾', lang: 'ar' },
+
+  // World (Language: en)
   { code: 'US', name: 'USA', flag: '🇺🇸', lang: 'en' },
   { code: 'GB', name: 'UK', flag: '🇬🇧', lang: 'en' },
   { code: 'CA', name: 'Canada', flag: '🇨🇦', lang: 'en' },
@@ -130,9 +136,18 @@ export const COUNTRIES = [
   { code: 'TR', name: 'Turkey', flag: '🇹🇷', lang: 'en' },
   { code: 'KR', name: 'S. Korea', flag: '🇰🇷', lang: 'en' },
   { code: 'MX', name: 'Mexico', flag: '🇲🇽', lang: 'en' },
+  { code: 'ID', name: 'Indonesia', flag: '🇮🇩', lang: 'en' },
+  { code: 'PK', name: 'Pakistan', flag: '🇵🇰', lang: 'en' },
+  { code: 'NG', name: 'Nigeria', flag: '🇳🇬', lang: 'en' },
+  { code: 'BD', name: 'Bangladesh', flag: '🇧🇩', lang: 'en' },
+  { code: 'NL', name: 'Netherlands', flag: '🇳🇱', lang: 'en' },
+  { code: 'SE', name: 'Sweden', flag: '🇸🇪', lang: 'en' },
+  { code: 'CH', name: 'Switzerland', flag: '🇨🇭', lang: 'en' },
+  { code: 'AR', name: 'Argentina', flag: '🇦🇷', lang: 'en' },
+  { code: 'ZA', name: 'South Africa', flag: '🇿🇦', lang: 'en' },
 ];
 
 export const getLanguageByCountry = (countryCode: string): Language => {
-  const country = COUNTRIES.find(c => c.code === countryCode);
+  const country = COUNTRIES.find(c => c.code === countryCode.toUpperCase());
   return (country?.lang as Language) || 'en';
 };

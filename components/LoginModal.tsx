@@ -13,17 +13,26 @@ interface LoginModalProps {
 const LoginModal: React.FC<LoginModalProps> = ({ language, onSuccess, onClose }) => {
   const t = translations[language];
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleLogin = async () => {
     triggerHaptic('medium');
     setLoading(true);
+    setError(null);
     try {
       const user = await signInWithGoogle();
       if (user) {
         onSuccess(user);
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      console.error("Login Error:", err);
+      if (err.code === 'auth/unauthorized-domain') {
+        setError(language === 'ar' 
+          ? "النطاق غير مصرح به. يرجى إضافة هذا النطاق إلى قائمة النطاقات المصرح بها في Firebase Console."
+          : "Unauthorized Domain. Please add this domain to the 'Authorized Domains' list in your Firebase Console.");
+      } else {
+        setError(language === 'ar' ? "فشل تسجيل الدخول. يرجى المحاولة لاحقاً." : "Login failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -44,9 +53,16 @@ const LoginModal: React.FC<LoginModalProps> = ({ language, onSuccess, onClose })
           {t.auth_title}
         </h2>
 
-        <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs mb-10 leading-relaxed max-w-[280px]">
+        <p className="text-zinc-500 font-bold uppercase tracking-widest text-xs mb-6 leading-relaxed max-w-[280px]">
           {t.auth_desc}
         </p>
+
+        {error && (
+          <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 text-xs font-bold leading-tight">
+            <i className="fa-solid fa-circle-exclamation mr-2"></i>
+            {error}
+          </div>
+        )}
 
         <button
           onClick={handleLogin}
