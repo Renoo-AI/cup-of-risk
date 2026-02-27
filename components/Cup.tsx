@@ -53,7 +53,7 @@ const Cup: React.FC<CupProps> = ({
                        !isCupLifted;
 
   return (
-    <div className="relative w-[19vw] h-[22vw] max-w-[95px] max-h-[110px] group transition-all tap-highlight-none">
+    <div className="relative w-[19vw] h-[22vw] max-w-[95px] max-h-[110px] group transition-all tap-highlight-none drop-shadow-2xl">
       {/* Items Layer - Elevated during X-Ray */}
       <div className={`
         absolute inset-0 flex flex-col items-center justify-center gap-1 pointer-events-none transition-all duration-300
@@ -88,6 +88,8 @@ const Cup: React.FC<CupProps> = ({
         ${canPlace ? 'active:-translate-y-4 active:scale-115 active:rotate-1' : ''}
         ${isPlayable ? 'active:-translate-y-4 active:scale-120 active:rotate-[-2deg]' : ''}
       `}>
+        {/* Shake Wrapper to prevent transform conflicts */}
+        <div className={`h-full w-full ${isCupLifted ? 'animate-[shake_0.4s_ease-in-out_forwards]' : ''}`}>
         {/* The Actual Cup Body */}
         <div className={`
           relative h-full w-full rounded-t-[1.5rem] sm:rounded-t-[2.8rem] border-x-2 sm:border-x-4 border-t-2 sm:border-t-4 
@@ -103,6 +105,11 @@ const Cup: React.FC<CupProps> = ({
 
           {/* Static Shine Line (Normal Mode Only) */}
           {!isXRayActive && <div className="absolute top-1/2 inset-x-0 h-1 bg-black/10"></div>}
+
+          {/* Dynamic Shine Effect */}
+          {!isSetup && !isXRayActive && !isCupLifted && (
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full animate-[shine_3s_infinite] pointer-events-none"></div>
+          )}
           
           {/* Setup Badge */}
           {isSetup && visibleItems.length > 0 && (
@@ -110,6 +117,7 @@ const Cup: React.FC<CupProps> = ({
               {visibleItems.length}
             </div>
           )}
+        </div>
         </div>
         
         {/* Cup Rim Base */}
