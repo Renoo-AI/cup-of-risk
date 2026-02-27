@@ -11,7 +11,8 @@ export enum GameState {
   P2_CONFIRM = 'P2_CONFIRM',
   PASS_TO_PLAY = 'PASS_TO_PLAY',
   PLAYING = 'PLAYING',
-  GAME_OVER = 'GAME_OVER'
+  GAME_OVER = 'GAME_OVER',
+  ACCOUNT_SETTINGS = 'ACCOUNT_SETTINGS'
 }
 
 export enum RevealStage {
@@ -26,13 +27,23 @@ export type Language = 'en' | 'ar';
 export type GameMode = 'LOCAL' | 'AI' | 'ONLINE';
 export type Difficulty = 'EASY' | 'NORMAL' | 'HARD';
 
+export interface UserStats {
+  bombsExploded: number;
+  heartsFound: number;
+  peakPrideScore: number;
+  totalGames: number;
+  wins: number;
+}
+
 export interface UserProfile {
   uid: string;
   displayName: string;
   photoURL: string;
   country?: string;
+  title?: string;
   prideScore: number;
   accountCreatedAt: number;
+  stats?: UserStats;
 }
 
 export interface Settings {

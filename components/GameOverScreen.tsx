@@ -6,6 +6,8 @@ interface GameOverScreenProps {
   winner: Player;
   onRestart: () => void;
   language: Language;
+  scoreChange?: number | null;
+  newScore?: number;
 }
 
 const ConfettiPiece: React.FC<{ delay: number; color: string; left: number; size: number }> = ({ delay, color, left, size }) => {
@@ -24,7 +26,7 @@ const ConfettiPiece: React.FC<{ delay: number; color: string; left: number; size
   );
 };
 
-const GameOverScreen: React.FC<GameOverScreenProps> = ({ winner, onRestart, language }) => {
+const GameOverScreen: React.FC<GameOverScreenProps> = ({ winner, onRestart, language, scoreChange, newScore }) => {
   const [pieces, setPieces] = useState<{ id: number; delay: number; color: string; left: number; size: number }[]>([]);
   const [fireworks, setFireworks] = useState<{ id: number; x: number; y: number; delay: number }[]>([]);
   const t = translations[language];
@@ -129,9 +131,25 @@ const GameOverScreen: React.FC<GameOverScreenProps> = ({ winner, onRestart, lang
           {winner.name.toUpperCase()}
         </h1>
         
-        <p className="text-white text-xl sm:text-3xl max-w-xs sm:max-w-lg mb-10 sm:mb-16 font-game tracking-widest opacity-80">
+        <p className="text-white text-xl sm:text-3xl max-w-xs sm:max-w-lg mb-4 font-game tracking-widest opacity-80">
           {t.bluffing_legend}
         </p>
+
+        {scoreChange !== undefined && scoreChange !== null && (
+          <div className="mb-10 sm:mb-16 flex flex-col items-center animate-in slide-in-from-bottom duration-1000 delay-500 fill-mode-both">
+            <div className="flex items-center gap-3">
+              <span className="text-zinc-500 font-game text-sm sm:text-xl uppercase tracking-widest">{t.pride_score}</span>
+              <span className={`text-2xl sm:text-4xl font-game ${scoreChange >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                {scoreChange >= 0 ? '+' : ''}{scoreChange}
+              </span>
+            </div>
+            {newScore !== undefined && (
+              <div className="text-yellow-400 font-game text-xl sm:text-2xl mt-1">
+                {t.total}: {newScore}
+              </div>
+            )}
+          </div>
+        )}
 
         <button 
           onClick={onRestart}

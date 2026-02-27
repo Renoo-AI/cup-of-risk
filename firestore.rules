@@ -1,0 +1,21 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // User profiles
+    match /users/{userId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Game rooms
+    match /rooms/{roomId} {
+      allow read, write: if request.auth != null;
+
+      // Optional: Add more granular checks for room ownership
+      // allow write: if request.auth != null &&
+      //   (resource == null || resource.data.players.any(p => p.uid == request.auth.uid));
+    }
+  }
+}
